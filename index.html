@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Premium North York Detailing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-50 text-gray-900">
+
+  <!-- Header -->
+  <header class="bg-white shadow">
+    <div class="max-w-3xl mx-auto py-6 px-4 text-center">
+      <h1 class="text-3xl font-bold">Premium North York Detailing</h1>
+      <p class="text-gray-600 mt-1">Mobile Interior & Exterior Car Detailing</p>
+    </div>
+  </header>
+
+  <!-- Booking Form -->
+  <main class="max-w-xl mx-auto bg-white shadow-md mt-10 p-6 rounded-xl">
+
+    <h2 class="text-2xl font-semibold mb-6 text-center">Book Your Detailing Service</h2>
+
+    <form id="bookingForm" class="space-y-4">
+
+      <!-- Name -->
+      <div>
+        <label class="block font-medium mb-1">Full Name</label>
+        <input name="customer_name" required class="w-full p-2 border rounded" />
+      </div>
+
+      <!-- Email -->
+      <div>
+        <label class="block font-medium mb-1">Email</label>
+        <input name="email" type="email" required class="w-full p-2 border rounded" />
+      </div>
+
+      <!-- Phone -->
+      <div>
+        <label class="block font-medium mb-1">Phone Number</label>
+        <input name="phone" required class="w-full p-2 border rounded" />
+      </div>
+
+      <!-- Address -->
+      <div>
+        <label class="block font-medium mb-1">Full Address</label>
+        <input name="address" required class="w-full p-2 border rounded" />
+      </div>
+
+      <!-- Neighborhood Dropdown -->
+      <div>
+        <label class="block font-medium mb-1">Neighborhood</label>
+        <select name="neighborhood" required class="w-full p-2 border rounded">
+          <option value="">Select area</option>
+          <option>North York</option>
+          <option>Willowdale</option>
+          <option>Bayview Village</option>
+          <option>York Mills</option>
+          <option>Don Mills</option>
+          <option>Thornhill</option>
+          <option>Richmond Hill</option>
+          <option>Forest Hill</option>
+          <option>Lawrence Park</option>
+          <option>Newtonbrook</option>
+          <option>Armour Heights</option>
+          <option>Bedford Park</option>
+        </select>
+      </div>
+
+      <!-- Car -->
+      <div>
+        <label class="block font-medium mb-1">Car Make & Model</label>
+        <input name="car_make_model" required class="w-full p-2 border rounded" />
+      </div>
+
+      <!-- Date -->
+      <div>
+        <label class="block font-medium mb-1">Preferred Date</label>
+        <input name="date" type="date" required class="w-full p-2 border rounded" />
+      </div>
+
+      <!-- Timeslot -->
+      <div>
+        <label class="block font-medium mb-1">Preferred Timeslot</label>
+        <select name="timeslot" required class="w-full p-2 border rounded">
+          <option value="">Select timeslot</option>
+          <option>9:00 AM – 12:00 PM</option>
+          <option>12:00 PM – 3:00 PM</option>
+          <option>3:00 PM – 6:00 PM</option>
+        </select>
+      </div>
+
+      <!-- Package -->
+      <div>
+        <label class="block font-medium mb-1">Package</label>
+        <select name="pkg" required class="w-full p-2 border rounded">
+          <option value="">Select a package</option>
+          <option value="Premium">Premium – $200</option>
+          <option value="Luxe">Luxe – $300</option>
+        </select>
+      </div>
+
+      <!-- Submit -->
+      <button id="submitBtn"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded font-medium">
+        Continue to Secure Checkout
+      </button>
+
+      <p id="errorMsg" class="text-red-600 text-center mt-2 hidden"></p>
+
+    </form>
+  </main>
+
+  <script>
+    const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE";  // <-- Replace this
+
+    document.getElementById("bookingForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const form = e.target;
+      const fd = new FormData(form);
+      const data = Object.fromEntries(fd.entries());
+      data.action = "create_checkout";
+
+      const btn = document.getElementById("submitBtn");
+      btn.disabled = true;
+      btn.textContent = "Processing...";
+
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+
+      const json = await res.json();
+
+      if (json.url) {
+        window.location.href = json.url;
+      } else {
+        document.getElementById("errorMsg").textContent =
+          json.error || "Booking failed. Please try again.";
+        document.getElementById("errorMsg").classList.remove("hidden");
+        btn.disabled = false;
+        btn.textContent = "Continue to Secure Checkout";
+      }
+    });
+  </script>
+
+</body>
+</html>
