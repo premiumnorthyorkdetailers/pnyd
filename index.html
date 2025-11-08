@@ -118,51 +118,60 @@
 </footer>
 
   <script>
-    // ====== CONFIG: paste your Apps Script /exec URL here ======
-    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNyuRBsy0a92mIbJVa4hlECkr9_Mt1Agussf9f7gfr9OZb_KTx9EkhFeRv8tlQbaBRAg/exec";
-    // ==========================================================
+  // ====== CONFIG: paste your Apps Script /exec URL here ======
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyNyuRBsy0a92mIbJVa4hlECkr9_Mt1Agussf9f7gfr9OZb_KTx9EkhFeRv8tlQbaBRAg/exec";
+  // ==========================================================
 
-    // Footer year
-    document.getElementById('yr').textContent = new Date().getFullYear();
+  // Footer year
+  document.getElementById('yr').textContent = new Date().getFullYear();
 
-    // Block same-day bookings (min = tomorrow)
-    const d = new Date(); d.setDate(d.getDate() + 1);
-    document.getElementById('dateInput').min = d.toISOString().slice(0, 10);
+  // Block same-day bookings (min = tomorrow)
+  const d = new Date(); d.setDate(d.getDate() + 1);
+  document.getElementById('dateInput').min = d.toISOString().slice(0, 10);
 
-    // Handle submit
-    document.getElementById("bookingForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      const btn  = document.getElementById("submitBtn");
-      const err  = document.getElementById("errorMsg");
-      err.classList.add("hidden"); err.textContent = "";
+  // Handle submit
+  document.getElementById("bookingForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-      const fd = new FormData(form);
-      const data = Object.fromEntries(fd.entries());
-      data.action = "create_checkout";
+    const form = e.target;
+    const btn  = document.getElementById("submitBtn");
+    const err  = document.getElementById("errorMsg");
+    err.classList.add("hidden"); err.textContent = "";
 
-      btn.disabled = true;
-      btn.textContent = "Processing…";
+    // Collect fields
+    const fd = new FormData(form);
+    fd.append("action", "create_checkout");
 
-      try {
-        const res = await fetch(APPS_SCRIPT_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        const json = await res.json();
-        if (json.url) {
-          window.location.href = json.url;
-        } else {
-          throw new Error(json.error || "Could not create checkout session.");
-        }
-      } catch (e2) {
-        err.textContent = e2.message;
-        err.classList.remove("hidden");
-        btn.disabled = false;
-        btn.textContent = "Continue to Secure Checkout";
+    // Convert to URL-encoded body to avoid CORS preflight
+    const body = new URLSearchParams();
+    for (const [k, v] of fd.entries()) body.append(k, v);
+
+    btn.disabled = true;
+    btn.textContent = "Processing…";
+
+    try {
+      const res = await fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        body // <-- no headers; browser sends form-encoded
+      });
+
+      // If Apps Script threw, res.ok can still be true, so always try JSON
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { throw new Error(text || "Unexpected server response."); }
+
+      if (json.url) {
+        window.location.href = json.url; // Stripe Checkout
+      } else {
+        throw new Error(json.error || "Could not create checkout session.");
       }
-    });
-  </script>
+    } catch (e2) {
+      err.textContent = e2.message || "Load failed";
+      err.classList.remove("hidden");
+      btn.disabled = false;
+      btn.textContent = "Continue to Secure Checkout";
+    }
+  });
+</script>
 </body>
 </html>
