@@ -8,7 +8,6 @@
 </head>
 
 <body class="bg-gray-50 text-gray-900">
-
   <!-- Header -->
   <header class="bg-white shadow">
     <div class="max-w-3xl mx-auto py-6 px-4 text-center">
@@ -19,11 +18,9 @@
 
   <!-- Booking Form -->
   <main class="max-w-xl mx-auto bg-white shadow-md mt-10 p-6 rounded-xl">
-
     <h2 class="text-2xl font-semibold mb-6 text-center">Book Your Detailing Service</h2>
 
     <form id="bookingForm" class="space-y-4">
-
       <!-- Name -->
       <div>
         <label class="block font-medium mb-1">Full Name</label>
@@ -77,17 +74,19 @@
       <!-- Date -->
       <div>
         <label class="block font-medium mb-1">Preferred Date</label>
-        <input name="date" type="date" required class="w-full p-2 border rounded" />
+        <input id="dateInput" name="date" type="date" required class="w-full p-2 border rounded" />
+        <p class="text-xs text-gray-500 mt-1">Same-day bookings are disabled.</p>
       </div>
 
       <!-- Timeslot -->
       <div>
         <label class="block font-medium mb-1">Preferred Timeslot</label>
         <select name="timeslot" required class="w-full p-2 border rounded">
+          <!-- value is what your Apps Script expects; label is what users see -->
           <option value="">Select timeslot</option>
-          <option>9:00 AM – 12:00 PM</option>
-          <option>12:00 PM – 3:00 PM</option>
-          <option>3:00 PM – 6:00 PM</option>
+          <option value="09:00-12:00">9:00 AM – 12:00 PM</option>
+          <option value="12:00-15:00">12:00 PM – 3:00 PM</option>
+          <option value="15:00-18:00">3:00 PM – 6:00 PM</option>
         </select>
       </div>
 
@@ -96,8 +95,8 @@
         <label class="block font-medium mb-1">Package</label>
         <select name="pkg" required class="w-full p-2 border rounded">
           <option value="">Select a package</option>
-          <option value="Premium">Premium – $200</option>
-          <option value="Luxe">Luxe – $300</option>
+          <option value="Premium">Premium — $200</option>
+          <option value="Luxe">Luxe — $300</option>
         </select>
       </div>
 
@@ -108,44 +107,59 @@
       </button>
 
       <p id="errorMsg" class="text-red-600 text-center mt-2 hidden"></p>
-
     </form>
   </main>
 
-  <script>
-    const APPS_SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE";  // <-- Replace this
+  <footer class="max-w-xl mx-auto px-6 py-6 text-center text-xs text-gray-500">
+    © <span id="yr"></span> Premium North York Detailing · Secured by Stripe
+  </footer>
 
+  <script>
+    // ====== CONFIG: paste your Apps Script /exec URL here ======
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbylGQGgM8mBsJVuH1nLCuua8caGIoZBLacrY1AiGBtxgjxKVogk-IMjjTmJ3tHfIUyCag/exec";
+    // ==========================================================
+
+    // Footer year
+    document.getElementById('yr').textContent = new Date().getFullYear();
+
+    // Block same-day bookings (min = tomorrow)
+    const d = new Date(); d.setDate(d.getDate() + 1);
+    document.getElementById('dateInput').min = d.toISOString().slice(0, 10);
+
+    // Handle submit
     document.getElementById("bookingForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-
       const form = e.target;
+      const btn  = document.getElementById("submitBtn");
+      const err  = document.getElementById("errorMsg");
+      err.classList.add("hidden"); err.textContent = "";
+
       const fd = new FormData(form);
       const data = Object.fromEntries(fd.entries());
       data.action = "create_checkout";
 
-      const btn = document.getElementById("submitBtn");
       btn.disabled = true;
-      btn.textContent = "Processing...";
+      btn.textContent = "Processing…";
 
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      });
-
-      const json = await res.json();
-
-      if (json.url) {
-        window.location.href = json.url;
-      } else {
-        document.getElementById("errorMsg").textContent =
-          json.error || "Booking failed. Please try again.";
-        document.getElementById("errorMsg").classList.remove("hidden");
+      try {
+        const res = await fetch(APPS_SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.url) {
+          window.location.href = json.url;
+        } else {
+          throw new Error(json.error || "Could not create checkout session.");
+        }
+      } catch (e2) {
+        err.textContent = e2.message;
+        err.classList.remove("hidden");
         btn.disabled = false;
         btn.textContent = "Continue to Secure Checkout";
       }
     });
   </script>
-
 </body>
 </html>
